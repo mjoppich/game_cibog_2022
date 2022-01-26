@@ -7,7 +7,7 @@ library(ggplot2) # => install.packages("ggplot2")
 library(cowplot) # => install.packages("cowplot")
 library(ggrepel) # => install.packages("ggrepel")
 library(pheatmap) # => install.packages("pheatmap")
-library(RColorBrewer) # => install.packages(" RColorBrewer ")
+library(RColorBrewer) # => install.packages("RColorBrewer")
 
 library(EnhancedVolcano) # => BiocManager::install('EnhancedVolcano') or devtools::install_github('kevinblighe/EnhancedVolcano')
 library(DESeq2) # => BiocManager::install('DESeq2')

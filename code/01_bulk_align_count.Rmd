@@ -1,0 +1,78 @@
+---
+title: An R Markdown document converted from "01_bulk_align_count.ipynb"
+output: html_document
+---
+
+```{python}
+import os
+from IPython.display import Image
+
+
+os.chdir("/mnt/w/game_cibog/")
+
+```
+
+```{python}
+! pwd
+```
+
+```{python}
+! which hisat2
+```
+
+# Aligning the reads
+
+In order to align the reads we use hsiat2 in parallel mode (4 threads, -p 4). We provide the reference genome (-x ./references/grch38/genome) and the unpaired reads file (-U ./reads/bulk/SUM159_24h_R1.fastq.gz).
+
+hisat2 output is an alignment in the SAM format. In order to save space, we will construct the compressed binary format from it: BAM format. This can be achieved by piping the output from samtools into samtools with parameters view -@ 4 -bS - (-@ 4 = threads, -bS = binary output).
+
+In order to speed up the quantification step we will sort the reads by genome position, which is done by samtools sort (again with 4 threads).
+
+```{python}
+! hisat2 -p 4 -x ./references/grch38/genome -U ./reads/bulk/SUM159_24h_R1.fastq.gz | samtools view -@ 4 -bS - | samtools sort -@ 4 -o alignments/bulk/SUM159_24h_R1.bam -
+```
+
+```{python}
+! hisat2 -p 4 -x ./references/grch38/genome -U ./reads/bulk/SUM159_24h_R2.fastq.gz | samtools view -@ 4 -bS - | samtools sort -@ 4 -o alignments/bulk/SUM159_24h_R2.bam -
+```
+
+```{python}
+! hisat2 -p 4 -x ./references/grch38/genome -U ./reads/bulk/SUM159R_24h_R1.fastq.gz | samtools view -@ 4 -bS - | samtools sort -@ 4 -o alignments/bulk/SUM159R_24h_R1.bam -
+```
+
+```{python}
+! hisat2 -p 4 -x ./references/grch38/genome -U ./reads/bulk/SUM159R_24h_R2.fastq.gz | samtools view -@ 4 -bS - | samtools sort -@ 4 -o alignments/bulk/SUM159R_24h_R2.bam -
+```
+
+# BAM output
+
+The BAM output shows where a read is aligned to (column 3 (chromosome) and 4 (bp-position)).
+
+```{python}
+! cd ./alignments/bulk/ && samtools view -h SUM159R_24h_R1.bam | head -n 250 | tail -n 10
+```
+
+# Quantify gene counts
+
+Using featureCounts we can count how many reads there have been per gene.
+
+For this we call featureCounts with default parameters and ask featureCounts to assess counts per -t exon and summarize by -g gene_id . As reference we hand over gencode v39 human reference. We specify an output file and all bam-files.
+
+First have a quick glance at the annotation file:
+
+```{python}
+! cat ./references/ensembl.105.annotation.gtf | head
+```
+
+This file tells where on the genome a specific gene (which consists of several transcript isoforms which again consist of several exons) is located. Then it is checked whether a read falls into a known exon. If so, this exon count is incremented by one. Finally, all exons of a gene are aggregated.
+
+```{python}
+! cd ./alignments/bulk/ &&  ../../tools/subread-2.0.3-source/bin/featureCounts -T 4 -t exon -g gene_id -a ../../references/ensembl.105.annotation.gtf -o counts.featurecounts.hisat2.tsv SUM159_24h_R1.bam SUM159_24h_R2.bam SUM159R_24h_R1.bam SUM159R_24h_R2.bam
+```
+
+This summary tells us how well the mapping could be assigned to read-counts. Some reads could not be aligned due to multimapping - possibly because the read length was chosen to be too short.
+
+```{python}
+! cat ./alignments/bulk/counts.featurecounts.hisat2.tsv.summary
+```
+

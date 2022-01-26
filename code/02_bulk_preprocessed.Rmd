@@ -1,0 +1,565 @@
+---
+title: An R Markdown document converted from "02_bulk_preprocessed.ipynb"
+output: html_document
+---
+
+```{r}
+options(jupyter.plot_mimetypes = 'image/png')
+options(repr.plot.width = 1, repr.plot.height = 0.75, repr.plot.res = 100)
+```
+
+```{r}
+library(readr)
+library(DESeq2)
+library(ggplot2)
+library(cowplot)
+```
+
+# Downloading preprocessed samples
+
+We first must download the preprocessed data from GEO!
+
+Download the supplementary data from the following GEO samples and place the downloaded files into the bulk folder of the workshop material:
+
+### wild-type cells samples
+
+#### 24h samples
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3763467 #SUM159_DMSO_24h_R1
+
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3763468 #SUM159_DMSO_24h_R2
+
+#### 3h samples
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3763469 #SUM159_DMSO_3h_R1
+
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3763470 #SUM159_DMSO_3h_R2
+
+### resistant cells samples
+
+#### 24h samples
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3763477 #SUM159_JQ1R_DMSO_24h_R1
+
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3763478 #SUM159_JQ1R_DMSO_24h_R2
+
+#### 3h samples
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3763479 #SUM159_JQ1R_DMSO_3h_R1
+
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3763480 #SUM159_JQ1R_DMSO_3h_R2
+
+# Analysis of 24h samples
+
+Let's start with reading in the 24h samples
+
+```{r}
+SUM159_24h_r1 = read_tsv("../bulk/GSM3763467_SUM159_DMSO_24h_R1.counts.txt.gz", col_names=F)
+SUM159_24h_r2 = read_tsv("../bulk/GSM3763468_SUM159_DMSO_24h_R2.counts.txt.gz", col_names=F)
+
+SUM159jq1r_24h_r1 = read_tsv("../bulk/GSM3763477_SUM159_JQ1R_DMSO_24h_R1.counts.txt.gz", col_names=F)
+SUM159jq1r_24h_r2 = read_tsv("../bulk/GSM3763478_SUM159_JQ1R_DMSO_24h_R2.counts.txt.gz", col_names=F)
+```
+
+And continue with the 3h samples:
+
+```{r}
+SUM159_3h_r1 = read_tsv("../bulk/GSM3763469_SUM159_DMSO_3h_R1.counts.txt.gz", col_names=F)
+SUM159_3h_r2 = read_tsv("../bulk/GSM3763470_SUM159_DMSO_3h_R2.counts.txt.gz", col_names=F)
+
+SUM159jq1r_3h_r1 = read_tsv("../bulk/GSM3763479_SUM159_JQ1R_DMSO_3h_R1.counts.txt.gz", col_names=F)
+SUM159jq1r_3h_r2 = read_tsv("../bulk/GSM3763480_SUM159_JQ1R_DMSO_3h_R2.counts.txt.gz", col_names=F)
+```
+
+```{r}
+colnames(SUM159_24h_r1) = c("gene", "SUM159_24h_r1")
+colnames(SUM159_24h_r2) = c("gene", "SUM159_24h_r2")
+colnames(SUM159jq1r_24h_r1) = c("gene", "SUM159jq1r_24h_r1")
+colnames(SUM159jq1r_24h_r2) = c("gene", "SUM159jq1r_24h_r2")
+```
+
+```{r}
+colnames(SUM159_3h_r1) = c("gene", "SUM159_3h_r1")
+colnames(SUM159_3h_r2) = c("gene", "SUM159_3h_r2")
+colnames(SUM159jq1r_3h_r1) = c("gene", "SUM159jq1r_3h_r1")
+colnames(SUM159jq1r_3h_r2) = c("gene", "SUM159jq1r_3h_r2")
+```
+
+```{r}
+sum159_24h.expr_df <- merge(SUM159_24h_r1, SUM159_24h_r2, by = 'gene')
+sum159jq1r_24h.expr_df <- merge(SUM159jq1r_24h_r1, SUM159jq1r_24h_r2, by = 'gene')
+
+sum159_3h.expr_df <- merge(SUM159_3h_r1, SUM159_3h_r2, by = 'gene')
+sum159jq1r_3h.expr_df <- merge(SUM159jq1r_3h_r1, SUM159jq1r_3h_r2, by = 'gene')
+```
+
+```{r}
+head(sum159_24h.expr_df)
+```
+
+```{r}
+merge_24h.expr_df <- merge(sum159_24h.expr_df, sum159jq1r_24h.expr_df, by = 'gene')
+merge_3h.expr_df <- merge(sum159_3h.expr_df, sum159jq1r_3h.expr_df, by = 'gene')
+```
+
+```{r}
+head(merge_24h.expr_df)
+```
+
+```{r}
+expr_df_3h = merge_3h.expr_df[grep("^__", merge_3h.expr_df$gene, invert=T),]
+rownames(expr_df_3h) = expr_df_3h$gene
+expr_df_3h$gene = NULL
+
+
+expr_df_24h = merge_24h.expr_df[grep("^__", merge_24h.expr_df$gene, invert=T),]
+rownames(expr_df_24h) = expr_df_24h$gene
+expr_df_24h$gene = NULL
+expr_df_24h
+```
+
+```{r}
+pdat_24h = data.frame( id=c("SUM159_24h_r1","SUM159_24h_r2", "SUM159jq1r_24h_r1","SUM159jq1r_24h_r2"),
+                       group=c("SUM159_24h", "SUM159_24h", "SUM159jq1r_24h", "SUM159jq1r_24h") )
+pdat_24h
+```
+
+```{r}
+pdat_3h = data.frame( id=c("SUM159_3h_r1","SUM159_3h_r2", "SUM159jq1r_3h_r1","SUM159jq1r_3h_r2"), group=c("SUM159_3h", "SUM159_3h", "SUM159jq1r_3h", "SUM159jq1r_3h") )
+pdat_3h
+```
+
+## DESeq2 analysis for 24h
+
+```{r}
+dds_24h <- DESeqDataSetFromMatrix(countData=expr_df_24h, 
+                                  colData=pdat_24h,
+                                  design=~group, tidy = FALSE)
+```
+
+```{r}
+dds_24h
+```
+
+```{r}
+dds_24h <- DESeq(dds_24h)
+res_lfc_24h <- lfcShrink(dds_24h, coef=resultsNames(dds_24h)[[2]], type="apeglm")
+res_lfc_24h <- res_lfc_24h[order(res_lfc_24h$padj, decreasing=FALSE),]
+
+
+res_24h <- results(dds_24h)
+res_24h <- res_24h[order(res_24h$padj, decreasing=FALSE),]
+```
+
+```{r}
+res_24h
+```
+
+```{r}
+res_lfc_24h
+```
+
+```{r}
+options(jupyter.plot_mimetypes = 'image/png')
+options(repr.plot.width = 15, repr.plot.height = 10, repr.plot.res = 150)
+```
+
+```{r}
+plotPCA( DESeqTransform( dds_24h ), intgroup="group" )
+```
+
+```{r}
+head(dispersions(dds_24h))
+```
+
+```{r}
+sizeFactors(dds_24h)
+```
+
+```{r}
+dispersionFunction(dds_24h)
+```
+
+```{r}
+plotDispEsts(dds_24h)
+```
+
+```{r}
+allplots = list()
+
+for (geneName in rownames(head(res_lfc_24h, n=6)))
+{
+    data = plotCounts(dds_24h, gene=geneName, intgroup="group",returnData = TRUE)
+
+    p = ggplot(data, aes(x=group, y=count, color=group)) + 
+  geom_jitter(size=3) + ggtitle(geneName)+
+  scale_y_log10()
+
+  allplots[[geneName]] = p
+}
+
+cowplot::plot_grid(plotlist= allplots)
+```
+
+```{r}
+plotMA(res_24h, ylim=c(-2,2))
+```
+
+```{r}
+plotMA(res_lfc_24h, ylim=c(-2,2))
+```
+
+```{r}
+resultsNames(dds_24h)
+```
+
+```{r}
+resLFC_24h <- lfcShrink(dds_24h, coef="group_SUM159jq1r_24h_vs_SUM159_24h", type="apeglm")
+resNorm_24h <- lfcShrink(dds_24h, coef="group_SUM159jq1r_24h_vs_SUM159_24h", type="normal")
+resAsh_24h <- lfcShrink(dds_24h, coef="group_SUM159jq1r_24h_vs_SUM159_24h", type="ashr")
+```
+
+```{r}
+options(repr.plot.width = 15, repr.plot.height = 5, repr.plot.res = 150)
+
+pltXLim = 10 ** ceiling(log10(max(counts(dds_24h, normalized=T))))
+par(mfrow=c(1,4), mar=c(4,4,2,1))
+xlim <- c(1,pltXLim); ylim <- c(-3,3)
+plotMA(res_24h, xlim=xlim, ylim=ylim, main="No Shrink")
+plotMA(resLFC_24h, xlim=xlim, ylim=ylim, main="apeglm")
+plotMA(resNorm_24h, xlim=xlim, ylim=ylim, main="normal")
+plotMA(resAsh_24h, xlim=xlim, ylim=ylim, main="ashr")
+
+options(repr.plot.width = 15, repr.plot.height = 10, repr.plot.res = 150)
+```
+
+```{r}
+outres_24h = res_lfc_24h[! is.na(res_lfc_24h$padj),]
+
+#fetches normalized counts
+normExpr_24h = counts(dds_24h, normalized=T)
+cn_24h = colnames(normExpr_24h)
+normExpr2_24h = cbind(rownames(normExpr_24h), normExpr_24h)
+colnames(normExpr2_24h) = c("Geneid", cn_24h)
+
+finalres_24h = data.frame(PROBEID=rownames(outres_24h), FC=outres_24h$log2FoldChange, PVAL=outres_24h$pvalue, ADJ.PVAL=outres_24h$padj)
+
+write.table(finalres_24h, file="../bulk/24h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+write.table(normExpr2_24h, file="../bulk/normed_expr.24h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+
+printres_24h = finalres_24h[finalres_24h$ADJ.PVAL < 0.001, ]
+write.table(printres_24h, file="../bulk/sig.24h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+
+printres_24h.up = printres_24h[printres_24h$FC > 1, ]
+write.table(printres_24h.up , file="../bulk/sig.up.24h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+
+printres_24h.down = printres_24h[printres_24h$FC < -1, ]
+write.table(printres_24h.down , file="../bulk/sig.down.24h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+
+```
+
+```{r}
+top24h.de = finalres_24h[order(abs(finalres_24h$FC),decreasing=TRUE),]
+top24h.de = top24h.de[top24h.de$ADJ.PVAL < 0.05, ]
+
+top24h.de.500.down = head(top24h.de[top24h.de$FC < -1,], n=500)
+top24h.de.500.up = head(top24h.de[top24h.de$FC > 1,], n=500)
+
+write.table(top24h.de.500.down , file="../bulk/top.down.24h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+write.table(top24h.de.500.up , file="../bulk/top.up.24h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+
+write.table(top24h.de , file="../bulk/top.all.24h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+```
+
+```{r}
+top24h.de
+```
+
+```{r}
+library(ggrepel)
+library(EnhancedVolcano)
+```
+
+```{r}
+head(outres_24h)
+```
+
+```{r}
+EnhancedVolcano(outres_24h,
+    lab = rownames(outres_24h),
+    x = 'log2FoldChange',
+    y = 'pvalue')
+```
+
+```{r}
+library(pheatmap)
+library(RColorBrewer)
+```
+
+```{r}
+pdat_24h
+```
+
+```{r}
+sigExprData = normExpr_24h[head(rownames(outres_24h), n=50), ]
+
+heat_colors <- brewer.pal(9, "YlOrRd")
+
+annotation <- data.frame(pdat_24h$group)
+rownames(annotation) = pdat_24h$id
+
+grpColors <- c("darkgreen", "darkred")
+names(grpColors) <- c("SUM159_24h", "SUM159jq1r_24h")
+anno_colors <- list("pdat_24h.group" = grpColors)
+
+pheatmap(sigExprData,
+        color = heat_colors,
+        cluster_rows = T,
+        show_rownames = T,
+        scale = "row", annotation=annotation, annotation_colors = anno_colors
+        )
+```
+
+# Analysis of 3h samples
+
+```{r}
+dds_3h <- DESeqDataSetFromMatrix(countData=expr_df_3h, 
+                                  colData=pdat_3h,
+                                  design=~group, tidy = FALSE)
+
+dds_3h
+```
+
+```{r}
+dds_3h <- DESeq(dds_3h)
+res_lfc_3h <- lfcShrink(dds_3h, coef=resultsNames(dds_3h)[[2]], type="apeglm")
+res_lfc_3h <- res_lfc_3h[order(res_lfc_3h$padj, decreasing=FALSE),]
+
+
+res_3h <- results(dds_3h)
+res_3h <- res_3h[order(res_3h$padj, decreasing=FALSE),]
+```
+
+```{r}
+res_3h
+```
+
+```{r}
+res_lfc_3h
+```
+
+```{r}
+plotDispEsts(dds_3h)
+```
+
+```{r}
+allplots = list()
+
+for (geneName in rownames(head(res_lfc_3h, n=6)))
+{
+    data = plotCounts(dds_3h, gene=geneName, intgroup="group",returnData = TRUE)
+
+    p = ggplot(data, aes(x=group, y=count, color=group)) + 
+    geom_jitter(size=3) + ggtitle(geneName)+
+    scale_y_log10()
+
+    allplots[[geneName]] = p
+}
+
+cowplot::plot_grid(plotlist= allplots)
+```
+
+```{r}
+plotMA(res_3h, ylim=c(-2,2))
+```
+
+```{r}
+plotMA(res_lfc_3h, ylim=c(-2,2))
+```
+
+```{r}
+resLFC_3h <- lfcShrink(dds_3h, coef="group_SUM159jq1r_3h_vs_SUM159_3h", type="apeglm")
+resNorm_3h <- lfcShrink(dds_3h, coef="group_SUM159jq1r_3h_vs_SUM159_3h", type="normal")
+resAsh_3h <- lfcShrink(dds_3h, coef="group_SUM159jq1r_3h_vs_SUM159_3h", type="ashr")
+```
+
+```{r}
+options(repr.plot.width = 15, repr.plot.height = 5, repr.plot.res = 150)
+
+pltXLim = 10 ** ceiling(log10(max(counts(dds_24h, normalized=T))))
+par(mfrow=c(1,4), mar=c(4,4,2,1))
+xlim <- c(1,pltXLim); ylim <- c(-3,3)
+plotMA(res_3h, xlim=xlim, ylim=ylim, main="No Shrink")
+plotMA(resLFC_3h, xlim=xlim, ylim=ylim, main="apeglm")
+plotMA(resNorm_3h, xlim=xlim, ylim=ylim, main="normal")
+plotMA(resAsh_3h, xlim=xlim, ylim=ylim, main="ashr")
+
+options(repr.plot.width = 15, repr.plot.height = 10, repr.plot.res = 150)
+```
+
+```{r}
+
+outres_3h = res_lfc_3h[! is.na(res_lfc_3h$padj),]
+
+normExpr_3h = counts(dds_3h, normalized=T)
+cn_3h = colnames(normExpr_3h)
+normExpr2_3h = cbind(rownames(normExpr_3h), normExpr_3h)
+colnames(normExpr2_3h) = c("Geneid", cn_3h)
+
+finalres_3h = data.frame(PROBEID=rownames(outres_3h), FC=outres_3h$log2FoldChange, PVAL=outres_3h$pvalue, ADJ.PVAL=outres_3h$padj)
+
+write.table(finalres_3h, file="../bulk/3h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+write.table(normExpr2_3h, file="../bulk/normed_expr.3h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+
+printres_3h = finalres_3h[finalres_3h$ADJ.PVAL < 0.001, ]
+write.table(printres_3h, file="../bulk/sig.3h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+
+printres_3h.up = printres_3h[printres_3h$FC > 1, ]
+write.table(printres_3h.up , file="../bulk/sig.up.3h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+
+printres_3h.down = printres_3h[printres_3h$FC < -1, ]
+write.table(printres_3h.down , file="../bulk/sig.down.3h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+```
+
+```{r}
+top3h.de = printres_3h[order(abs(printres_3h$FC),decreasing=TRUE),]
+top3h.de = top3h.de[top3h.de$padj < 0.05, ]
+
+
+top3h.de.500.down = head(top3h.de[top3h.de$FC < -1,], n=500)
+top3h.de.500.up = head(top3h.de[top3h.de$FC > 1,], n=500)
+
+write.table(top3h.de.500.down , file="../bulk/top.down.3h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+write.table(top3h.de.500.up , file="../bulk/top.up.3h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+
+
+write.table(top3h.de , file="../bulk/top.all.3h_sum159_vs_sum159_jq1r.tsv", row.names=F, quote=F, sep="\t")
+```
+
+```{r}
+EnhancedVolcano(outres_3h,
+    lab = rownames(outres_3h),
+    x = 'log2FoldChange',
+    y = 'pvalue')
+```
+
+# Enrichment analysis on 24h samples
+
+```{r}
+library(disgenet2r)
+
+Sys.setenv(DISGENET_API_KEY= get_disgenet_api_key(email="joppich@bio.ifi.lmu.de", password="disgenetpassword"))
+```
+
+```{r}
+length(intersect(c("AREG","CCND1","BCL2","KLF5","CHKA","EPHB2","EREG","FYN","GLI2","GSN","FOXA1","CXCL8","KDR","MAPT","MMP1","RAB27B","SLC20A1","TRPM2","FOSL1","STC2","MAP4K4","ADAMTS2","SEMA4D","TRIM29","SGK3","PAG1","LGR6","UBASH3B","DNER","E2F7","CD24"),
+head(top24h.de.500.up$PROBEID	, n=500)))
+```
+
+```{r}
+input_genes = head(top24h.de.500.up$PROBEID, n=500)
+
+print(input_genes)
+
+disgenet_input <- gene2disease( gene = input_genes, vocabulary = "HGNC", database = "ALL")
+
+common_genes = intersect(disgenet_input@qresult$gene_symbol, input_genes)
+
+print(paste("Remaining Gene Count: ", length(common_genes), "of", length(input_genes)))
+
+res_enrich <-disease_enrichment( entities =common_genes, vocabulary = "HGNC", database = "ALL")
+```
+
+```{r}
+res_enrich@qresult[ res_enrich@qresult$FDR < 0.0001, c('ID','Description','source','Ratio','BgRatio','pvalue','FDR')]
+```
+
+```{r}
+plot( res_enrich, class = "Enrichment",  cutoff= 0.05, nchars=70)
+```
+
+```{r}
+library(clusterProfiler)
+library(DOSE)
+library(enrichplot)
+library(org.Hs.eg.db)
+```
+
+```{r}
+dim(finalres_24h[finalres_24h$FC > 0,])
+```
+
+```{r}
+head(finalres_24h)
+```
+
+```{r}
+sel_df = finalres_24h[finalres_24h$FC > 0,]
+
+nsamples=1000
+geneList = head(sel_df$FC, n=nsamples)
+names(geneList) = head(sel_df$PROBEID, n=nsamples)
+names(geneList) = mapIds(org.Hs.eg.db, head(sel_df$PROBEID, n=nsamples), 'ENTREZID', 'SYMBOL')
+geneList = geneList[!is.na(names(geneList))]
+
+geneList = geneList[order(geneList, decreasing = TRUE)]
+head(geneList)
+```
+
+```{r}
+sel_df_full = finalres_24h[finalres_24h$ADJ.PVAL < 0.05,]
+
+geneList_full =sel_df_full$FC
+names(geneList_full) = sel_df_full$PROBEID
+names(geneList_full) = mapIds(org.Hs.eg.db, names(geneList_full), 'ENTREZID', 'SYMBOL')
+geneList_full = geneList_full[!is.na(names(geneList_full))]
+
+geneList_full = geneList_full[order(geneList_full, decreasing = TRUE)]
+head(geneList_full)
+```
+
+```{r}
+dgnGSE <- gseDGN(geneList,
+              pvalueCutoff  = 0.5,
+              pAdjustMethod = "BH")
+dgnGSE <- setReadable(dgnGSE, 'org.Hs.eg.db')
+```
+
+```{r}
+head(dgnGSE@result)
+```
+
+```{r}
+dgnGSE@result[dgnGSE@result$qvalues < 0.05,]
+```
+
+```{r}
+gseaplot2(dgnGSE, geneSetID = 1, title = dgnGSE$Description[1])
+```
+
+```{r}
+dgnEnrich <- enrichDGN(names(geneList),
+              pvalueCutoff  = 0.5,
+              pAdjustMethod = "BH")
+dgnEnrich <- setReadable(dgnEnrich, 'org.Hs.eg.db')
+head(dgnEnrich@result, n=20)
+```
+
+```{r}
+barplot(dgnEnrich, showCategory=20) 
+```
+
+```{r}
+pE=mutate(dgnEnrich, qscore = -log(p.adjust, base=10)) %>%  dotplot( x="qscore", showCategory=30) + ggtitle("dotplot for ORA")
+pG=mutate(dgnGSE, NESscore = NES) %>% filter(p.adjust < 0.2) %>% arrange(abs(NESscore)) %>%  dotplot( x="NESscore", showCategory=30) + ggtitle("dotplot for GSEA")
+
+cowplot::plot_grid(pE, pG)
+```
+
+```{r}
+options(repr.plot.width = 15, repr.plot.height = 10, repr.plot.res = 150)
+
+cnetplot(dgnEnrich, categorySize="geneNum", foldChange=geneList)
+```
+
+```{r}
+dgnEnrich2 <- pairwise_termsim(dgnEnrich)
+treeplot(dgnEnrich2)
+```
+

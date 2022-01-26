@@ -23,3 +23,5 @@ BiocManager::install('org.Hs.eg.db')
 
 devtools::install_bitbucket("ibi_group/disgenet2r")
 
+BiocManager::install("apeglm")
+BiocManager::install("ashr")

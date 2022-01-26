@@ -1,0 +1,160 @@
+---
+title: An R Markdown document converted from "03_sc_gene_ontology_enrichment.ipynb"
+output: html_document
+---
+
+```{r}
+options(jupyter.plot_mimetypes = 'image/png')
+options(repr.plot.width = 15, repr.plot.height = 10, repr.plot.res = 150)
+```
+
+```{r}
+library(clusterProfiler)
+library(ReactomePA)
+library(readr)
+library(org.Hs.eg.db)
+library(enrichplot)
+```
+
+```{r}
+SUM159_C1 = read_csv("../sc/SUM159R_subsets Features R1_up_all.csv")
+
+SUM159_C1 = SUM159_C1[SUM159_C1$`SUM159R1 P-Value` < 0.05,]
+
+dim(SUM159_C1)
+head(SUM159_C1)
+
+write.table(SUM159_C1, "../sc/SUM159R_subsets Features R1_up_all_sigonly.tsv", row.names=FALSE, sep="\t", quote=F)
+```
+
+```{r}
+geneList_C1 = SUM159_C1$`SUM159R1 Log2 Fold Change`
+names(geneList_C1) = SUM159_C1$FeatureName
+names(geneList_C1) = mapIds(org.Hs.eg.db, names(geneList_C1), 'ENTREZID', 'SYMBOL')
+
+geneList_C1 = geneList_C1[!is.na(names(geneList_C1))]
+geneList_C1 = geneList_C1[order(geneList_C1, decreasing = TRUE)]
+```
+
+```{r}
+SUM159_C2 = read_csv("../sc/SUM159R_subsets Features R2_up.csv")
+
+SUM159_C2 = SUM159_C2[SUM159_C2$`SUM159R1 P-Value` < 0.05,]
+
+dim(SUM159_C2)
+head(SUM159_C2)
+
+write.table(SUM159_C2, "../sc/SUM159R_subsets Features R2_up_all_sigonly.tsv", row.names=FALSE, sep="\t", quote=F)
+```
+
+```{r}
+geneList_C2 = SUM159_C2$`SUM159R2 Log2 Fold Change`
+names(geneList_C2) = SUM159_C2$FeatureName
+names(geneList_C2) = mapIds(org.Hs.eg.db, names(geneList_C2), 'ENTREZID', 'SYMBOL')
+
+geneList_C2 = geneList_C2[!is.na(names(geneList_C2))]
+geneList_C2 = geneList_C2[order(geneList_C2, decreasing = TRUE)]
+```
+
+```{r}
+egoC1 <- enrichGO(gene          = names(geneList_C1),
+                OrgDb         = org.Hs.eg.db,
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                minGSSize    = 15,
+                maxGSSize    = 150,
+                pvalueCutoff  = 0.2,
+                qvalueCutoff  = 0.2,
+        readable      = TRUE)
+head(egoC1)
+```
+
+```{r}
+cnetplot(egoC1, foldChange=geneList_C1)
+```
+
+```{r}
+egoC2 <- enrichGO(gene          = names(geneList_C2),
+                OrgDb         = org.Hs.eg.db,
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                minGSSize    = 15,
+                maxGSSize    = 150,
+                pvalueCutoff  = 0.2,
+                qvalueCutoff  = 0.2,
+        readable      = TRUE)
+head(egoC2)
+```
+
+```{r}
+cnetplot(egoC2, foldChange=geneList_C2)
+```
+
+```{r}
+egoC1t <- pairwise_termsim(egoC1)
+options(repr.plot.width = 10, repr.plot.height = 10, repr.plot.res = 150)
+treeplot(egoC1t)+ggtitle("C1 subset")
+options(repr.plot.width = 15, repr.plot.height = 10, repr.plot.res = 150)
+```
+
+```{r}
+egoC2t <- pairwise_termsim(egoC2)
+options(repr.plot.width = 10, repr.plot.height = 10, repr.plot.res = 150)
+treeplot(egoC2t)+ggtitle("C2 subset")
+options(repr.plot.width = 15, repr.plot.height = 10, repr.plot.res = 150)
+```
+
+```{r}
+eraC1 <- enrichPathway(gene= names(geneList_C1),
+                pAdjustMethod = "BH",
+                minGSSize    = 5,
+                maxGSSize    = 50,
+                pvalueCutoff  = 0.2,
+                qvalueCutoff  = 0.2,
+        readable      = TRUE)
+head(eraC1)
+```
+
+```{r}
+cnetplot(eraC1, foldChange=geneList_C1)
+```
+
+```{r}
+eraC2 <- enrichPathway(gene= names(geneList_C2),
+                pAdjustMethod = "BH",
+                minGSSize    = 5,
+                maxGSSize    = 150,
+                pvalueCutoff  = 0.2,
+                qvalueCutoff  = 0.2,
+        readable      = TRUE)
+head(eraC2)
+```
+
+```{r}
+cnetplot(eraC2, foldChange=geneList_C2)
+```
+
+```{r}
+gseC1 <- gseGO(geneList     = geneList_C1,
+              OrgDb        = org.Hs.eg.db,
+              ont          = "BP",
+              minGSSize    = 5,
+              maxGSSize    = 150,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE)
+
+head(gseC1)
+```
+
+```{r}
+gseC2 <- gseGO(geneList     = geneList_C2,
+              OrgDb        = org.Hs.eg.db,
+              ont          = "BP",
+              minGSSize    = 5,
+              maxGSSize    = 150,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE)
+
+head(gseC2)
+```
+
