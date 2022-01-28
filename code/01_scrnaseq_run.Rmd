@@ -87,31 +87,31 @@ Where Read Type is one of:
     R2: Read 2 (required)
 
 ```{python}
-! mv sc/SUM159DMSO/SRR9050597_1.fastq.gz sc/SUM159DMSO/SRR9050597_S1_L001_R1_001.fastq.gz
-! mv sc/SUM159DMSO/SRR9050597_2.fastq.gz sc/SUM159DMSO/SRR9050597_S1_L001_R2_001.fastq.gz
+! mv reads/SUM159DMSO/SRR9050597_1.fastq.gz reads/SUM159DMSO/SRR9050597_S1_L001_R1_001.fastq.gz
+! mv reads/SUM159DMSO/SRR9050597_2.fastq.gz reads/SUM159DMSO/SRR9050597_S1_L001_R2_001.fastq.gz
 
-! mv sc/SUM159DMSO/SRR9050598_1.fastq.gz sc/SUM159DMSO/SRR9050598_S1_L001_R1_001.fastq.gz
-! mv sc/SUM159DMSO/SRR9050598_2.fastq.gz sc/SUM159DMSO/SRR9050598_S1_L001_R2_001.fastq.gz
+! mv reads/SUM159DMSO/SRR9050598_1.fastq.gz reads/SUM159DMSO/SRR9050598_S1_L001_R1_001.fastq.gz
+! mv reads/SUM159DMSO/SRR9050598_2.fastq.gz reads/SUM159DMSO/SRR9050598_S1_L001_R2_001.fastq.gz
 
-! mv sc/SUM159DMSO/SRR9050599_1.fastq.gz sc/SUM159DMSO/SRR9050599_S1_L001_R1_001.fastq.gz
-! mv sc/SUM159DMSO/SRR9050599_2.fastq.gz sc/SUM159DMSO/SRR9050599_S1_L001_R2_001.fastq.gz
+! mv reads/SUM159DMSO/SRR9050599_1.fastq.gz reads/SUM159DMSO/SRR9050599_S1_L001_R1_001.fastq.gz
+! mv reads/SUM159DMSO/SRR9050599_2.fastq.gz reads/SUM159DMSO/SRR9050599_S1_L001_R2_001.fastq.gz
 
-! mv sc/SUM159DMSO/SRR9050600_1.fastq.gz sc/SUM159DMSO/SRR9050600_S1_L001_R1_001.fastq.gz
-! mv sc/SUM159DMSO/SRR9050600_2.fastq.gz sc/SUM159DMSO/SRR9050600_S1_L001_R2_001.fastq.gz
+! mv reads/SUM159DMSO/SRR9050600_1.fastq.gz reads/SUM159DMSO/SRR9050600_S1_L001_R1_001.fastq.gz
+! mv reads/SUM159DMSO/SRR9050600_2.fastq.gz reads/SUM159DMSO/SRR9050600_S1_L001_R2_001.fastq.gz
 ```
 
 ```{python}
-! mv sc/SUM159RDMSO/SRR9050605_1.fastq.gz sc/SUM159RDMSO/SRR9050605_S1_L001_R1_001.fastq.gz
-! mv sc/SUM159RDMSO/SRR9050605_2.fastq.gz sc/SUM159RDMSO/SRR9050605_S1_L001_R2_001.fastq.gz
+! mv reads/SUM159RDMSO/SRR9050605_1.fastq.gz reads/SUM159RDMSO/SRR9050605_S1_L001_R1_001.fastq.gz
+! mv reads/SUM159RDMSO/SRR9050605_2.fastq.gz reads/SUM159RDMSO/SRR9050605_S1_L001_R2_001.fastq.gz
 
-! mv sc/SUM159RDMSO/SRR9050606_1.fastq.gz sc/SUM159RDMSO/SRR9050606_S1_L001_R1_001.fastq.gz
-! mv sc/SUM159RDMSO/SRR9050606_2.fastq.gz sc/SUM159RDMSO/SRR9050606_S1_L001_R2_001.fastq.gz
+! mv reads/SUM159RDMSO/SRR9050606_1.fastq.gz reads/SUM159RDMSO/SRR9050606_S1_L001_R1_001.fastq.gz
+! mv reads/SUM159RDMSO/SRR9050606_2.fastq.gz reads/SUM159RDMSO/SRR9050606_S1_L001_R2_001.fastq.gz
 
-! mv sc/SUM159RDMSO/SRR9050607_1.fastq.gz sc/SUM159RDMSO/SRR9050607_S1_L001_R1_001.fastq.gz
-! mv sc/SUM159RDMSO/SRR9050607_2.fastq.gz sc/SUM159RDMSO/SRR9050607_S1_L001_R2_001.fastq.gz
+! mv reads/SUM159RDMSO/SRR9050607_1.fastq.gz reads/SUM159RDMSO/SRR9050607_S1_L001_R1_001.fastq.gz
+! mv reads/SUM159RDMSO/SRR9050607_2.fastq.gz reads/SUM159RDMSO/SRR9050607_S1_L001_R2_001.fastq.gz
 
-! mv sc/SUM159RDMSO/SRR9050608_1.fastq.gz sc/SUM159RDMSO/SRR9050608_S1_L001_R1_001.fastq.gz
-! mv sc/SUM159RDMSO/SRR9050608_2.fastq.gz sc/SUM159RDMSO/SRR9050608_S1_L001_R2_001.fastq.gz
+! mv reads/SUM159RDMSO/SRR9050608_1.fastq.gz reads/SUM159RDMSO/SRR9050608_S1_L001_R1_001.fastq.gz
+! mv reads/SUM159RDMSO/SRR9050608_2.fastq.gz reads/SUM159RDMSO/SRR9050608_S1_L001_R2_001.fastq.gz
 ```
 
 Consult the presentation for structuring the sc folder and the calls file. When properly set up, it should look like this: (the folders in the calls subfolder in sc will only appear after having run cellranger!)
@@ -119,6 +119,10 @@ Consult the presentation for structuring the sc folder and the calls file. When 
 <img src="../images/folder_layout.png" />
 
 # Running cellranger
+
+If you prepared the calls-script the same way as it is mentioned in the presentation, you can simply call it.
+
+During preparation of the calls-script and all other files (samples.csv) make sure that all paths match the ones on your computer. It does not matter whether the files are in those places or not - you just have to make sure that you enter the correct paths for your system!
 
 ```{python}
 ! bash sc/calls/calls.sh
